@@ -6,14 +6,13 @@ using UnityEngine.XR.ARSubsystems;
 using UnityEngine.UI;
 using TMPro;
 
-#pragma warning disable CS0649 // suppress "field never assigned" for SerializeField
+#pragma warning disable CS0649
 
 public class HeadLeanQuiz : MonoBehaviour
 {
     [Header("AR - Drag AR Face Manager here")]
     [SerializeField] private ARFaceManager faceManager;
 
-    // ── Quiz UI (all built at runtime) ───────────────────
     private TMP_Text titleText;
     private TMP_Text questionText;
     private TMP_Text feedbackText;
@@ -29,15 +28,14 @@ public class HeadLeanQuiz : MonoBehaviour
     private Image    scorePanel;
     private Image    counterPanel;
 
-    // ── End Screen UI ─────────────────────────────────────
     private GameObject endScreenGO;
     private TMP_Text   endTitleText;
     private TMP_Text   endScoreText;
     private TMP_Text   endMessageText;
     private TMP_Text   endStarsText;
     private Image      endPanel;
+    private Button     restartButton;
 
-    // ── Colour Palette ────────────────────────────────────
     private static readonly Color C_GOLD      = new Color(1.00f, 0.85f, 0.10f);
     private static readonly Color C_WHITE     = Color.white;
     private static readonly Color C_GREEN     = new Color(0.10f, 1.00f, 0.35f);
@@ -53,7 +51,6 @@ public class HeadLeanQuiz : MonoBehaviour
     private static readonly Color P_SCORE   = new Color(0.10f, 0.05f, 0.00f, 0.70f);
     private static readonly Color P_COUNTER = new Color(0.00f, 0.20f, 0.40f, 0.75f);
 
-    // ── Game State ────────────────────────────────────────
     private float  dwellTimer       = 0f;
     private string currentLean      = "";
     private int    currentQuestion  = 0;
@@ -67,32 +64,38 @@ public class HeadLeanQuiz : MonoBehaviour
     [Header("Dwell Settings")]
     [SerializeField] private float dwellTime = 1.5f;
 
+    // true = YES (lean left)   false = NO (lean right)
+    // Pattern: T F T F T F T F T F  — perfectly alternating, no run of same answer
     private readonly string[] questions =
     {
-        "Is the sun a star?",
-        "Do fish live in water?",
-        "Is 5 + 5 = 10?",
-        "Does a cat say meow?",
-        "Is the moon round?",
-        "Is 3 bigger than 7?",
-        "Do birds have wings?",
-        "Is grass green?",
-        "Does ice feel cold?",
-        "Is 2 x 3 = 6?"
+        "Is the sun a star?",               // true
+        "Does the moon produce its own light?",   // false
+        "Do birds have wings?",             // true
+        "Is 3 bigger than 7?",              // false
+        "Is grass green?",                  // true
+        "Do fish breathe air like humans?", // false
+        "Is 4 x 3 = 12?",                  // true
+        "Does ice feel hot?",               // false
+        "Does a cat say meow?",             // true
+        "Is the sun a planet?"              // false
     };
 
     private readonly bool[] answers =
     {
-        true, true, true, true, true,
-        false, true, true, true, true
+        true,   // Is the sun a star?              → YES
+        false,  // Does the moon produce its own light? → NO
+        true,   // Do birds have wings?             → YES
+        false,  // Is 3 bigger than 7?              → NO
+        true,   // Is grass green?                  → YES
+        false,  // Do fish breathe air like humans? → NO
+        true,   // Is 4 x 3 = 12?                  → YES
+        false,  // Does ice feel hot?               → NO
+        true,   // Does a cat say meow?             → YES
+        false   // Is the sun a planet?             → NO
     };
 
-    // ─────────────────────────────────────────────────────
-    // AWAKE — destroy old canvases, build fresh UI
-    // ─────────────────────────────────────────────────────
     private void Awake()
     {
-        // Destroy any existing Canvas objects (removes "New Text" leftovers)
         Canvas[] existingCanvases = Resources.FindObjectsOfTypeAll<Canvas>();
         foreach (Canvas c in existingCanvases)
         {
@@ -102,26 +105,21 @@ public class HeadLeanQuiz : MonoBehaviour
         BuildUI();
     }
 
-    // ─────────────────────────────────────────────────────
-    // BUILD UI
-    // ─────────────────────────────────────────────────────
     private void BuildUI()
     {
-        // Canvas
         GameObject canvasGO = new GameObject("QuizCanvas");
         Canvas canvas       = canvasGO.AddComponent<Canvas>();
         canvas.renderMode   = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = 10;
 
-        CanvasScaler scaler          = canvasGO.AddComponent<CanvasScaler>();
-        scaler.uiScaleMode           = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution   = new Vector2(1080f, 1920f);
-        scaler.screenMatchMode       = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
-        scaler.matchWidthOrHeight    = 0.5f;
+        CanvasScaler scaler        = canvasGO.AddComponent<CanvasScaler>();
+        scaler.uiScaleMode         = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1080f, 1920f);
+        scaler.screenMatchMode     = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+        scaler.matchWidthOrHeight  = 0.5f;
 
         canvasGO.AddComponent<GraphicRaycaster>();
 
-        // ── Title bar ──────────────────────────────────────
         titlePanel = MakePanel(canvasGO, "TitlePanel", P_DARK,
             new Vector2(0f, 850f), new Vector2(1080f, 115f));
 
@@ -131,7 +129,6 @@ public class HeadLeanQuiz : MonoBehaviour
             Vector2.zero, new Vector2(1060f, 105f));
         titleText.characterSpacing = 8f;
 
-        // ── Counter pill (top left) ───────────────────────
         counterPanel = MakePanel(canvasGO, "CounterPanel", P_COUNTER,
             new Vector2(-370f, 700f), new Vector2(260f, 80f));
 
@@ -141,7 +138,6 @@ public class HeadLeanQuiz : MonoBehaviour
             Vector2.zero, new Vector2(250f, 72f));
         counterText.characterSpacing = 3f;
 
-        // ── Score pill (top right) ────────────────────────
         scorePanel = MakePanel(canvasGO, "ScorePanel", P_SCORE,
             new Vector2(370f, 700f), new Vector2(260f, 80f));
 
@@ -150,13 +146,11 @@ public class HeadLeanQuiz : MonoBehaviour
             34f, C_GOLD, FontStyles.Bold,
             Vector2.zero, new Vector2(250f, 72f));
 
-        // ── Streak label ──────────────────────────────────
         streakText = MakeText(canvasGO, "StreakText",
             "",
             32f, C_ORANGE, FontStyles.Bold,
             new Vector2(370f, 600f), new Vector2(260f, 55f));
 
-        // ── Question panel ────────────────────────────────
         questionPanel = MakePanel(canvasGO, "QuestionPanel", P_BLUE,
             new Vector2(0f, 380f), new Vector2(1020f, 170f));
 
@@ -165,13 +159,11 @@ public class HeadLeanQuiz : MonoBehaviour
             52f, C_WHITE, FontStyles.Bold,
             Vector2.zero, new Vector2(1000f, 158f));
 
-        // ── Feedback label ────────────────────────────────
         feedbackText = MakeText(canvasGO, "FeedbackText",
             "",
             50f, C_GREEN, FontStyles.Bold,
             new Vector2(0f, 150f), new Vector2(1020f, 180f));
 
-        // ── Bottom panel ──────────────────────────────────
         bottomPanel = MakePanel(canvasGO, "BottomPanel", P_DARK,
             new Vector2(0f, -650f), new Vector2(1080f, 340f));
 
@@ -191,7 +183,6 @@ public class HeadLeanQuiz : MonoBehaviour
             28f, new Color(0.75f, 0.75f, 0.75f, 1f), FontStyles.Normal,
             new Vector2(0f, -115f), new Vector2(1040f, 60f));
 
-        // ── End screen (hidden initially) ─────────────────
         BuildEndScreen(canvasGO);
     }
 
@@ -230,12 +221,74 @@ public class HeadLeanQuiz : MonoBehaviour
             46f, C_CYAN, FontStyles.Bold,
             new Vector2(0f, -180f), new Vector2(960f, 300f));
 
+        GameObject btnGO = new GameObject("RestartButton");
+        btnGO.transform.SetParent(endScreenGO.transform, false);
+
+        Image btnImage   = btnGO.AddComponent<Image>();
+        btnImage.color   = new Color(0.10f, 0.60f, 1.00f, 0.90f);
+
+        RectTransform btnRT    = btnGO.GetComponent<RectTransform>();
+        btnRT.anchorMin        = new Vector2(0.5f, 0.5f);
+        btnRT.anchorMax        = new Vector2(0.5f, 0.5f);
+        btnRT.anchoredPosition = new Vector2(0f, -420f);
+        btnRT.sizeDelta        = new Vector2(460f, 110f);
+
+        restartButton = btnGO.AddComponent<Button>();
+        restartButton.targetGraphic = btnImage;
+
+        ColorBlock cb       = restartButton.colors;
+        cb.normalColor      = new Color(0.10f, 0.60f, 1.00f, 0.90f);
+        cb.highlightedColor = new Color(0.20f, 0.75f, 1.00f, 1.00f);
+        cb.pressedColor     = new Color(0.05f, 0.40f, 0.80f, 1.00f);
+        cb.selectedColor    = cb.normalColor;
+        cb.fadeDuration     = 0.1f;
+        restartButton.colors = cb;
+
+        MakeText(btnGO, "RestartLabel",
+            "▶  PLAY AGAIN",
+            40f, C_WHITE, FontStyles.Bold,
+            Vector2.zero, new Vector2(440f, 100f));
+
+        restartButton.onClick.AddListener(RestartQuiz);
+
         endScreenGO.SetActive(false);
     }
 
-    // ─────────────────────────────────────────────────────
-    // START
-    // ─────────────────────────────────────────────────────
+    private void RestartQuiz()
+    {
+        StopAllCoroutines();
+
+        currentQuestion  = 0;
+        score            = 0;
+        streak           = 0;
+        correctCount     = 0;
+        dwellTimer       = 0f;
+        currentLean      = "";
+        answerConfirmed  = false;
+        waitingForCenter = false;
+        gameOver         = false;
+
+        endScreenGO.SetActive(false);
+
+        titlePanel.gameObject.SetActive(true);
+        questionPanel.gameObject.SetActive(true);
+        bottomPanel.gameObject.SetActive(true);
+        scorePanel.gameObject.SetActive(true);
+        counterPanel.gameObject.SetActive(true);
+        streakText.gameObject.SetActive(true);
+        feedbackText.gameObject.SetActive(true);
+
+        questionText.text = questions[0];
+        feedbackText.text = "";
+        progressText.text = "";
+
+        UpdateScoreUI();
+        UpdateCounter();
+
+        StartCoroutine(PulseTitle());
+        StartCoroutine(AnimateHint());
+    }
+
     private void Start()
     {
         UpdateScoreUI();
@@ -244,9 +297,6 @@ public class HeadLeanQuiz : MonoBehaviour
         StartCoroutine(AnimateHint());
     }
 
-    // ─────────────────────────────────────────────────────
-    // UPDATE — face tracking
-    // ─────────────────────────────────────────────────────
     private void Update()
     {
         if (faceManager == null || gameOver) return;
@@ -339,9 +389,6 @@ public class HeadLeanQuiz : MonoBehaviour
         }
     }
 
-    // ─────────────────────────────────────────────────────
-    // ANSWER LOGIC
-    // ─────────────────────────────────────────────────────
     private void ConfirmAnswer(string direction)
     {
         bool answeredYes = direction == "LEFT";
@@ -403,9 +450,6 @@ public class HeadLeanQuiz : MonoBehaviour
         StartCoroutine(BounceText(counterText));
     }
 
-    // ─────────────────────────────────────────────────────
-    // END SCREEN
-    // ─────────────────────────────────────────────────────
     private void ShowEndScreen()
     {
         titlePanel.gameObject.SetActive(false);
@@ -417,8 +461,6 @@ public class HeadLeanQuiz : MonoBehaviour
         feedbackText.gameObject.SetActive(false);
 
         float  pct          = (float)correctCount / questions.Length;
-
-        // Initialise with lowest-tier defaults — fixes "unassigned variable" error
         string stars        = "*";
         string message      = "KEEP TRYING!\nEvery attempt makes\nyou stronger!";
         Color  messageColor = C_AMBER;
@@ -463,12 +505,8 @@ public class HeadLeanQuiz : MonoBehaviour
         StartCoroutine(EndScreenAnimation());
     }
 
-    // ─────────────────────────────────────────────────────
-    // ANIMATIONS
-    // ─────────────────────────────────────────────────────
     private IEnumerator EndScreenAnimation()
     {
-        // 1 — Fade in overlay
         Color panelTarget = endPanel.color;
         endPanel.color = new Color(panelTarget.r, panelTarget.g, panelTarget.b, 0f);
         float t = 0f;
@@ -480,7 +518,6 @@ public class HeadLeanQuiz : MonoBehaviour
             yield return null;
         }
 
-        // 2 — Scale in title
         endTitleText.transform.localScale = Vector3.zero;
         t = 0f;
         while (t < 0.5f)
@@ -493,7 +530,6 @@ public class HeadLeanQuiz : MonoBehaviour
         endTitleText.transform.localScale = Vector3.one;
         yield return new WaitForSeconds(0.2f);
 
-        // 3 — Count up score
         int displayed = 0;
         while (displayed < score)
         {
@@ -505,7 +541,6 @@ public class HeadLeanQuiz : MonoBehaviour
         StartCoroutine(BounceText(endScoreText));
         yield return new WaitForSeconds(0.3f);
 
-        // 4 — Stars appear one by one
         string[] parts = endStarsText.text.Split(' ');
         endStarsText.text = "";
         foreach (string part in parts)
@@ -517,10 +552,23 @@ public class HeadLeanQuiz : MonoBehaviour
         }
         yield return new WaitForSeconds(0.3f);
 
-        // 5 — Fade in motivational message
         yield return StartCoroutine(FadeInText(endMessageText));
 
-        // 6 — Pulse stars forever
+        if (restartButton != null)
+        {
+            Image btnImg  = restartButton.GetComponent<Image>();
+            Color baseCol = btnImg.color;
+            btnImg.color  = new Color(baseCol.r, baseCol.g, baseCol.b, 0f);
+            t = 0f;
+            while (t < 0.4f)
+            {
+                t += Time.deltaTime;
+                btnImg.color = new Color(baseCol.r, baseCol.g, baseCol.b, t / 0.4f);
+                yield return null;
+            }
+            btnImg.color = baseCol;
+        }
+
         StartCoroutine(PulseStars());
     }
 
@@ -643,7 +691,6 @@ public class HeadLeanQuiz : MonoBehaviour
         panel.color = original;
     }
 
-    // ── Shared factory helpers ────────────────────────────
     private Image MakePanel(GameObject parent, string name,
                              Color col, Vector2 pos, Vector2 size)
     {
