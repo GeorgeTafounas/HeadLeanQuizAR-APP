@@ -13,6 +13,8 @@ public class HeadLeanQuiz : MonoBehaviour
     [Header("AR - Drag AR Face Manager here")]
     [SerializeField] private ARFaceManager faceManager;
 
+// UI Component References
+// These are assigned dynamically during BuildUI() to keep the Inspector clean
     private TMP_Text titleText;
     private TMP_Text questionText;
     private TMP_Text feedbackText;
@@ -22,44 +24,46 @@ public class HeadLeanQuiz : MonoBehaviour
     private TMP_Text progressText;
     private TMP_Text counterText;
     private TMP_Text hintText;
-    private Image    titlePanel;
-    private Image    questionPanel;
-    private Image    bottomPanel;
-    private Image    scorePanel;
-    private Image    counterPanel;
+    private Image titlePanel;
+    private Image questionPanel;
+    private Image bottomPanel;
+    private Image scorePanel;
+    private Image counterPanel;
 
     private GameObject endScreenGO;
-    private TMP_Text   endTitleText;
-    private TMP_Text   endScoreText;
-    private TMP_Text   endMessageText;
-    private TMP_Text   endStarsText;
-    private Image      endPanel;
-    private Button     restartButton;
+    private TMP_Text endTitleText;
+    private TMP_Text ndScoreText;
+    private TMP_Text endMessageText;
+    private TMP_Text endStarsText;
+    private Image endPanel;
+    private Button restartButton;
 
-    private static readonly Color C_GOLD      = new Color(1.00f, 0.85f, 0.10f);
-    private static readonly Color C_WHITE     = Color.white;
-    private static readonly Color C_GREEN     = new Color(0.10f, 1.00f, 0.35f);
-    private static readonly Color C_RED       = new Color(1.00f, 0.25f, 0.25f);
-    private static readonly Color C_CYAN      = new Color(0.25f, 0.90f, 1.00f);
-    private static readonly Color C_ORANGE    = new Color(1.00f, 0.55f, 0.10f);
+// visual Styling (HUD Palette)
+    private static readonly Color C_GOLD = new Color(1.00f, 0.85f, 0.10f);
+    private static readonly Color C_GREEN = new Color(0.10f, 1.00f, 0.35f);
+    private static readonly Color C_WHITE = Color.white;
+    private static readonly Color C_RED = new Color(1.00f, 0.25f, 0.25f);
+    private static readonly Color C_CYAN = new Color(0.25f, 0.90f, 1.00f);
+    private static readonly Color C_ORANGE  = new Color(1.00f, 0.55f, 0.10f);
     private static readonly Color C_LIGHTBLUE = new Color(0.50f, 0.85f, 1.00f);
-    private static readonly Color C_AMBER     = new Color(1.00f, 0.65f, 0.00f);
-    private static readonly Color C_COUNTER   = new Color(0.20f, 0.80f, 1.00f);
+    private static readonly Color C_AMBER = new Color(1.00f, 0.65f, 0.00f);
+    private static readonly Color C_COUNTER = new Color(0.20f, 0.80f, 1.00f);
 
-    private static readonly Color P_DARK    = new Color(0.00f, 0.00f, 0.00f, 0.65f);
-    private static readonly Color P_BLUE    = new Color(0.00f, 0.05f, 0.30f, 0.60f);
-    private static readonly Color P_SCORE   = new Color(0.10f, 0.05f, 0.00f, 0.70f);
+    private static readonly Color P_DARK = new Color(0.00f, 0.00f, 0.00f, 0.65f);
+    private static readonly Color P_BLUE = new Color(0.00f, 0.05f, 0.30f, 0.60f);
+    private static readonly Color P_SCORE = new Color(0.10f, 0.05f, 0.00f, 0.70f);
     private static readonly Color P_COUNTER = new Color(0.00f, 0.20f, 0.40f, 0.75f);
 
-    private float  dwellTimer       = 0f;
-    private string currentLean      = "";
-    private int    currentQuestion  = 0;
-    private bool   answerConfirmed  = false;
-    private bool   waitingForCenter = false;
-    private int    score            = 0;
-    private int    streak           = 0;
-    private bool   gameOver         = false;
-    private int    correctCount     = 0;
+// Game State variables
+    private float  dwellTimer = 0f;
+    private string currentLean = "";
+    private int currentQuestion  = 0;
+    private bool answerConfirmed  = false;
+    private bool waitingForCenter = false;
+    private int score  = 0;
+    private int streak  = 0;
+    private bool gameOver = false;
+    private int  correctCoun = 0;
 
     [Header("Dwell Settings")]
     [SerializeField] private float dwellTime = 1.5f;
@@ -96,6 +100,7 @@ public class HeadLeanQuiz : MonoBehaviour
 
     private void Awake()
     {
+        // Clean up phase: Ensure no duplicate canvases exist in the scene befpre building 
         Canvas[] existingCanvases = Resources.FindObjectsOfTypeAll<Canvas>();
         foreach (Canvas c in existingCanvases)
         {
@@ -107,11 +112,12 @@ public class HeadLeanQuiz : MonoBehaviour
 
     private void BuildUI()
     {
+
         GameObject canvasGO = new GameObject("QuizCanvas");
-        Canvas canvas       = canvasGO.AddComponent<Canvas>();
+        Canvas canvas  = canvasGO.AddComponent<Canvas>();
         canvas.renderMode   = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = 10;
-
+                // Ensure the HUD looks consistent on both tall and wide mobile screen
         CanvasScaler scaler        = canvasGO.AddComponent<CanvasScaler>();
         scaler.uiScaleMode         = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1080f, 1920f);
@@ -224,24 +230,24 @@ public class HeadLeanQuiz : MonoBehaviour
         GameObject btnGO = new GameObject("RestartButton");
         btnGO.transform.SetParent(endScreenGO.transform, false);
 
-        Image btnImage   = btnGO.AddComponent<Image>();
-        btnImage.color   = new Color(0.10f, 0.60f, 1.00f, 0.90f);
+        Image btnImage  = btnGO.AddComponent<Image>();
+        btnImage.color = new Color(0.10f, 0.60f, 1.00f, 0.90f);
 
         RectTransform btnRT    = btnGO.GetComponent<RectTransform>();
-        btnRT.anchorMin        = new Vector2(0.5f, 0.5f);
-        btnRT.anchorMax        = new Vector2(0.5f, 0.5f);
+        btnRT.anchorMin  = new Vector2(0.5f, 0.5f);
+        btnRT.anchorMax = new Vector2(0.5f, 0.5f);
         btnRT.anchoredPosition = new Vector2(0f, -420f);
-        btnRT.sizeDelta        = new Vector2(460f, 110f);
+        btnRT.sizeDelta = new Vector2(460f, 110f);
 
         restartButton = btnGO.AddComponent<Button>();
         restartButton.targetGraphic = btnImage;
 
-        ColorBlock cb       = restartButton.colors;
-        cb.normalColor      = new Color(0.10f, 0.60f, 1.00f, 0.90f);
+        ColorBlock cb  = restartButton.colors;
+        cb.normalColor   = new Color(0.10f, 0.60f, 1.00f, 0.90f);
         cb.highlightedColor = new Color(0.20f, 0.75f, 1.00f, 1.00f);
-        cb.pressedColor     = new Color(0.05f, 0.40f, 0.80f, 1.00f);
-        cb.selectedColor    = cb.normalColor;
-        cb.fadeDuration     = 0.1f;
+        cb.pressedColor  = new Color(0.05f, 0.40f, 0.80f, 1.00f);
+        cb.selectedColor = cb.normalColor;
+        cb.fadeDuration = 0.1f;
         restartButton.colors = cb;
 
         MakeText(btnGO, "RestartLabel",
@@ -259,14 +265,14 @@ public class HeadLeanQuiz : MonoBehaviour
         StopAllCoroutines();
 
         currentQuestion  = 0;
-        score            = 0;
-        streak           = 0;
-        correctCount     = 0;
-        dwellTimer       = 0f;
-        currentLean      = "";
+        score = 0;
+        streak = 0;
+        correctCount  = 0;
+        dwellTimer = 0f;
+        currentLean = "";
         answerConfirmed  = false;
         waitingForCenter = false;
-        gameOver         = false;
+        gameOver = false;
 
         endScreenGO.SetActive(false);
 
@@ -321,11 +327,11 @@ public class HeadLeanQuiz : MonoBehaviour
             {
                 directionIndicator.text  = "Return to center";
                 directionIndicator.color = C_AMBER;
-                progressText.text        = "";
+                progressText.text = "";
                 if (lean == "NONE")
                 {
-                    waitingForCenter  = false;
-                    answerConfirmed   = false;
+                    waitingForCenter = false;
+                    answerConfirmed  = false;
                     feedbackText.text = "";
                     SetDirectionUI("NONE");
                 }
@@ -346,9 +352,9 @@ public class HeadLeanQuiz : MonoBehaviour
 
                 if (dwellTimer >= dwellTime)
                 {
-                    answerConfirmed   = true;
-                    waitingForCenter  = true;
-                    dwellTimer        = 0f;
+                    answerConfirmed  = true;
+                    waitingForCenter = true;
+                    dwellTimer = 0f;
                     progressText.text = "";
                     ConfirmAnswer(lean);
                 }
@@ -363,8 +369,8 @@ public class HeadLeanQuiz : MonoBehaviour
 
         if (!faceFound)
         {
-            currentLean              = "";
-            dwellTimer               = 0f;
+            currentLean  = "";
+            dwellTimer  = 0f;
             directionIndicator.text  = "No face detected";
             directionIndicator.color = C_AMBER;
         }
@@ -460,45 +466,45 @@ public class HeadLeanQuiz : MonoBehaviour
         streakText.gameObject.SetActive(false);
         feedbackText.gameObject.SetActive(false);
 
-        float  pct          = (float)correctCount / questions.Length;
-        string stars        = "*";
-        string message      = "KEEP TRYING!\nEvery attempt makes\nyou stronger!";
+        float  pct = (float)correctCount / questions.Length;
+        string stars = "*";
+        string message = "KEEP TRYING!\nEvery attempt makes\nyou stronger!";
         Color  messageColor = C_AMBER;
         endPanel.color      = new Color(0.12f, 0f, 0f, 0.90f);
 
         if (pct >= 1.0f)
         {
-            stars          = "* * * * *";
-            message        = "PERFECT SCORE!\nAbsolutely incredible!\nYou are a STAR!";
-            messageColor   = C_GOLD;
+            stars = "* * * * *";
+            message = "PERFECT SCORE!\nAbsolutely incredible!\nYou are a STAR!";
+            messageColor = C_GOLD;
             endPanel.color = new Color(0.05f, 0.10f, 0f, 0.90f);
         }
         else if (pct >= 0.80f)
         {
-            stars          = "* * * *";
-            message        = "AMAZING WORK!\nSo close to perfect!\nKeep it up!";
-            messageColor   = C_GREEN;
+            stars = "* * * *";
+            message  = "AMAZING WORK!\nSo close to perfect!\nKeep it up!";
+            messageColor = C_GREEN;
             endPanel.color = new Color(0f, 0.10f, 0f, 0.90f);
         }
         else if (pct >= 0.60f)
         {
-            stars          = "* * *";
-            message        = "GREAT JOB!\nYou did really well!\nPractice makes perfect!";
-            messageColor   = C_CYAN;
+            stars = "* * *";
+            message = "GREAT JOB!\nYou did really well!\nPractice makes perfect!";
+            messageColor = C_CYAN;
             endPanel.color = new Color(0f, 0.05f, 0.15f, 0.90f);
         }
         else if (pct >= 0.40f)
         {
-            stars          = "* *";
-            message        = "GOOD EFFORT!\nYou are getting there!\nTry again!";
-            messageColor   = C_ORANGE;
+            stars = "* *";
+            message = "GOOD EFFORT!\nYou are getting there!\nTry again!";
+            messageColor = C_ORANGE;
             endPanel.color = new Color(0.10f, 0.05f, 0f, 0.90f);
         }
 
-        endStarsText.text    = stars;
-        endTitleText.text    = "QUIZ COMPLETE!";
-        endScoreText.text    = $"SCORE:  {score}  pts\n{correctCount} / {questions.Length}  correct";
-        endMessageText.text  = message;
+        endStarsText.text = stars;
+        endTitleText.text = "QUIZ COMPLETE!";
+        endScoreText.text = $"SCORE:  {score}  pts\n{correctCount} / {questions.Length}  correct";
+        endMessageText.text = message;
         endMessageText.color = messageColor;
 
         endScreenGO.SetActive(true);
@@ -694,15 +700,15 @@ public class HeadLeanQuiz : MonoBehaviour
     private Image MakePanel(GameObject parent, string name,
                              Color col, Vector2 pos, Vector2 size)
     {
-        GameObject go    = new GameObject(name);
+        GameObject go = new GameObject(name);
         go.transform.SetParent(parent.transform, false);
-        Image img        = go.AddComponent<Image>();
-        img.color        = col;
+        Image img = go.AddComponent<Image>();
+        img.color = col;
         RectTransform rt = go.GetComponent<RectTransform>();
-        rt.anchorMin     = new Vector2(0.5f, 0.5f);
-        rt.anchorMax     = new Vector2(0.5f, 0.5f);
+        rt.anchorMin = new Vector2(0.5f, 0.5f);
+        rt.anchorMax = new Vector2(0.5f, 0.5f);
         rt.anchoredPosition = pos;
-        rt.sizeDelta        = size;
+        rt.sizeDelta = size;
         return img;
     }
 
@@ -710,23 +716,23 @@ public class HeadLeanQuiz : MonoBehaviour
                                float size, Color col, FontStyles style,
                                Vector2 pos, Vector2 rectSize)
     {
-        GameObject go        = new GameObject(name);
+        GameObject go = new GameObject(name);
         go.transform.SetParent(parent.transform, false);
-        TMP_Text t           = go.AddComponent<TextMeshProUGUI>();
-        t.text               = content;
-        t.fontSize           = size;
-        t.color              = col;
-        t.fontStyle          = style;
-        t.alignment          = TextAlignmentOptions.Center;
+        TMP_Text t = go.AddComponent<TextMeshProUGUI>();
+        t.text = content;
+        t.fontSize = size;
+        t.color = col;
+        t.fontStyle = style;
+        t.alignment = TextAlignmentOptions.Center;
         t.enableWordWrapping = true;
-        t.overflowMode       = TextOverflowModes.Overflow;
-        t.outlineWidth       = 0.28f;
-        t.outlineColor       = new Color32(0, 0, 0, 220);
-        RectTransform rt     = go.GetComponent<RectTransform>();
-        rt.anchorMin         = new Vector2(0.5f, 0.5f);
-        rt.anchorMax         = new Vector2(0.5f, 0.5f);
+        t.overflowMode = TextOverflowModes.Overflow;
+        t.outlineWidth = 0.28f;
+        t.outlineColor = new Color32(0, 0, 0, 220);
+        RectTransform rt = go.GetComponent<RectTransform>();
+        rt.anchorMin = new Vector2(0.5f, 0.5f);
+        rt.anchorMax = new Vector2(0.5f, 0.5f);
         rt.anchoredPosition  = pos;
-        rt.sizeDelta         = rectSize;
+        rt.sizeDelta = rectSize;
         return t;
     }
 }
